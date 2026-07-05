@@ -57,58 +57,62 @@
   <button class="btn print-btn" id="printBtn" onclick="window.print()">Print / Save Card</button>
 
   <script>
-    // 1. URL se data catch karke dashboard me bharna
-    const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(window.location.search);
+  const farmerId = urlParams.get('farmerId');
+
+  // 🔴 APNI VAHI APPS SCRIPT URL YAHAN BHI DALIE TAQI SITE SHEET SE UTAYE
+  const GSHEET_SCRIPT_URL = "YOUR_NEW_GOOGLE_APPS_SCRIPT_URL";
+
+  let farmerData = {};
+
+  if (farmerId) {
+    document.getElementById('makeCardBtn').innerText = "Loading Data from Cloud...";
     
-    const farmerData = {
-      id: urlParams.get('id') || 'N/A',
-      enroll: urlParams.get('enroll') || 'N/A',
-      name: urlParams.get('name') || 'N/A',
-      gender: urlParams.get('gender') || 'N/A',
-      dob: urlParams.get('dob') || 'N/A',
-      addr: urlParams.get('addr') || 'N/A',
-      pin: urlParams.get('pin') || 'N/A',
-      photo: sessionStorage.getItem('farmerPhoto') || '' // Big base64 photo session me store hogi
-    };
-
-    // Dashboard UI me data set karna
-    document.getElementById('d-id').innerText = farmerData.id;
-    document.getElementById('d-enroll').innerText = farmerData.enroll;
-    document.getElementById('d-name').innerText = farmerData.name;
-    document.getElementById('d-gender').innerText = farmerData.gender;
-    document.getElementById('d-dob').innerText = farmerData.dob;
-    document.getElementById('d-addr').innerText = farmerData.addr;
-    document.getElementById('d-pin').innerText = farmerData.pin;
-
-    // 2. Make Card & Payment System (Simulated Gateway)
-    document.getElementById('makeCardBtn').addEventListener('click', () => {
-      alert("Redirecting to Secure Payment Gateway...\nAmount: ₹30.00");
-      
-      // Yahan aap real me Razorpay ki script use kar sakte hain. 
-      // Abhi testing ke liye hum 1.5 second ka fake processing loader chala rahe hain.
-      let paymentSuccess = confirm("Payment Gateway: Kya aap ₹30 ka payment approve karna chahte hain?");
-      
-      if(paymentSuccess) {
-        alert("🎉 Payment Successful! Generating your Card...");
-        
-        // Dashboard chhupana aur Card dikhana
-        document.getElementById('dashboard').style.display = 'none';
-        
-        document.getElementById('c-name').innerText = farmerData.name;
-        document.getElementById('c-id').innerText = farmerData.id;
-        document.getElementById('c-dob').innerText = farmerData.dob;
-        document.getElementById('c-gender').innerText = farmerData.gender;
-        document.getElementById('c-pin').innerText = farmerData.pin;
-        if(farmerData.photo) {
-          document.getElementById('c-photo').src = farmerData.photo;
+    // Google sheet se data aur photo fetch karna
+    fetch(`${GSHEET_SCRIPT_URL}?farmerId=${farmerId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          farmerData = data;
+          
+          // Dashboard me data load karna
+          document.getElementById('d-id').innerText = data.farmerId;
+          document.getElementById('d-enroll').innerText = data.enrollmentId;
+          document.getElementById('d-name').innerText = data.name;
+          document.getElementById('d-gender').innerText = data.gender;
+          document.getElementById('d-dob').innerText = data.dob;
+          document.getElementById('d-addr').innerText = data.address;
+          document.getElementById('d-pin').innerText = data.pincode;
+          
+          document.getElementById('makeCardBtn').innerText = "Make Card (Pay ₹30)";
+        } else {
+          alert("Farmer data not synced yet. Please refresh.");
         }
+      });
+  }
 
-        document.getElementById('farmerCard').style.display = 'block';
-        document.getElementById('printBtn').style.style.display = 'block';
-      } else {
-        alert("❌ Payment Cancelled/Failed!");
+  // Payment button logic
+  document.getElementById('makeCardBtn').addEventListener('click', () => {
+    let paymentSuccess = confirm("Payment Gateway: Kya aap ₹30 ka payment approve karna chahte hain?");
+    if(paymentSuccess) {
+      alert("🎉 Payment Successful!");
+      document.getElementById('dashboard').style.display = 'none';
+      
+      document.getElementById('c-name').innerText = farmerData.name;
+      document.getElementById('c-id').innerText = farmerData.farmerId;
+      document.getElementById('c-dob').innerText = farmerData.dob;
+      document.getElementById('c-gender').innerText = farmerData.gender;
+      document.getElementById('c-pin').innerText = farmerData.pincode;
+      
+      // Google Sheet se aayi hui real photo yahan pass ho rahi hai bina tute 🚀
+      if(farmerData.photoBase64) {
+        document.getElementById('c-photo').src = farmerData.photoBase64;
       }
-    });
-  </script>
+
+      document.getElementById('farmerCard').style.display = 'block';
+      document.getElementById('printBtn').style.display = 'block';
+    }
+  });
+</script>
 </body>
 </html>
